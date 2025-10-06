@@ -1,0 +1,155 @@
+{
+  "name": "UniversityDB",
+  "tables": [
+    {
+      "name": "Students",
+      "fields": [
+        {
+          "name": "student_id",
+          "type": "integer",
+          "is_primary_key": true
+        },
+        {
+          "name": "full_name",
+          "type": "string",
+          "is_primary_key": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "is_primary_key": false
+        },
+        {
+          "name": "year",
+          "type": "integer",
+          "is_primary_key": false
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "is_primary_key": false,
+          "enum_values": ["active", "inactive", "graduated"]
+        }
+      ],
+      "records": [
+        {
+          "student_id": "1",
+          "full_name": "Іван Петренко",
+          "email": "ivan.petrenko@university.edu",
+          "year": "2",
+          "status": "active"
+        },
+        {
+          "student_id": "2",
+          "full_name": "Марія Коваленко",
+          "email": "maria.kovalenko@university.edu",
+          "year": "3",
+          "status": "active"
+        },
+        {
+          "student_id": "3",
+          "full_name": "Олексій Шевченко",
+          "email": "oleksiy.shevchenko@university.edu",
+          "year": "4",
+          "status": "graduated"
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "fields": [
+        {
+          "name": "course_id",
+          "type": "integer",
+          "is_primary_key": true
+        },
+        {
+          "name": "course_name",
+          "type": "string",
+          "is_primary_key": false
+        },
+        {
+          "name": "credits",
+          "type": "integer",
+          "is_primary_key": false
+        },
+        {
+          "name": "grade",
+          "type": "char",
+          "is_primary_key": false
+        }
+      ],
+      "records": [
+        {
+          "course_id": "101",
+          "course_name": "Програмування",
+          "credits": "5",
+          "grade": "A"
+        },
+        {
+          "course_id": "102",
+          "course_name": "Бази даних",
+          "credits": "4",
+          "grade": "B"
+        },
+        {
+          "course_id": "103",
+          "course_name": "Алгоритми",
+          "credits": "6",
+          "grade": "A"
+        }
+      ]
+    },
+    {
+      "name": "Grades",
+      "fields": [
+        {
+          "name": "grade_id",
+          "type": "integer",
+          "is_primary_key": true
+        },
+        {
+          "name": "student_id",
+          "type": "integer",
+          "is_primary_key": false
+        },
+        {
+          "name": "course_id",
+          "type": "integer",
+          "is_primary_key": false
+        },
+        {
+          "name": "score",
+          "type": "real",
+          "is_primary_key": false
+        }
+      ],
+      "records": [
+        {
+          "grade_id": "1",
+          "student_id": "1",
+          "course_id": "101",
+          "score": "95.5"
+        },
+        {
+          "grade_id": "2",
+          "student_id": "1",
+          "course_id": "102",
+          "score": "88.0"
+        },
+        {
+          "grade_id": "3",
+          "student_id": "2",
+          "course_id": "101",
+          "score": "92.3"
+        },
+        {
+          "grade_id": "4",
+          "student_id": "3",
+          "course_id": "103",
+          "score": "97.8"
+        }
+      ]
+    }
+  ]
+}

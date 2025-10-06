@@ -521,6 +521,111 @@ def intersect_tables(db_name):
         if db_system:
             db_system.close()
 
+# ==================== IMPORT ENDPOINT ====================
+
+@app.route('/api/databases/import', methods=['POST'])
+def import_database():
+    db_system = None
+    try:
+        data = request.json
+        
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Invalid JSON format: missing database name'}), 400
+        
+        db_name = data['name']
+        tables_data = data.get('tables', [])
+        
+        db_system = DatabaseSystem()
+        
+        # Перевіряємо чи база даних вже існує
+        existing_db = db_system.get_database(db_name)
+        if existing_db:
+            return jsonify({'error': f'Database "{db_name}" already exists'}), 400
+        
+        # Створюємо нову базу даних
+        database = Database(db_name)
+        if not db_system.add_database(database):
+            return jsonify({'error': 'Failed to create database'}), 500
+        
+        # Імпортуємо таблиці
+        imported_tables = 0
+        for table_data in tables_data:
+            try:
+                table_name = table_data.get('name')
+                if not table_name:
+                    continue
+                
+                table = Table(table_name)
+                
+                # Додаємо поля
+                fields_data = table_data.get('fields', [])
+                for field_data in fields_data:
+                    field_name = field_data.get('name')
+                    field_type = field_data.get('type')
+                    is_primary_key = field_data.get('is_primary_key', False)
+                    enum_values = field_data.get('enum_values', [])
+                    
+                    if not field_name or not field_type:
+                        continue
+                    
+                    # Створюємо тип даних
+                    if field_type == 'integer':
+                        data_type = IntegerType()
+                    elif field_type == 'real':
+                        data_type = RealType()
+                    elif field_type == 'char':
+                        data_type = CharType()
+                    elif field_type == 'string':
+                        data_type = StringType()
+                    elif field_type == 'email':
+                        data_type = EmailType()
+                    elif field_type == 'enum':
+                        if not enum_values:
+                            continue
+                        data_type = EnumType(enum_values)
+                    else:
+                        continue
+                    
+                    field = Field(field_name, data_type, is_primary_key)
+                    table.add_field(field)
+                
+                # Додаємо записи
+                records_data = table_data.get('records', [])
+                for record_data in records_data:
+                    # Конвертуємо всі значення в рядки для валідації
+                    str_record = {}
+                    for key, value in record_data.items():
+                        if value is None:
+                            str_record[key] = ''
+                        else:
+                            str_record[key] = str(value)
+                    
+                    table.add_record(str_record)
+                
+                # Додаємо таблицю до БД
+                if db_system.add_table(db_name, table):
+                    db_system.save_table(db_name, table)
+                    imported_tables += 1
+                
+            except Exception as table_error:
+                print(f"Error importing table {table_data.get('name', 'unknown')}: {str(table_error)}")
+                continue
+        
+        return jsonify({
+            'message': f'Database "{db_name}" imported successfully',
+            'tables_imported': imported_tables
+        }), 201
+        
+    except json.JSONDecodeError as e:
+        return jsonify({'error': f'Invalid JSON format: {str(e)}'}), 400
+    except Exception as e:
+        print(f"Error in import_database: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if db_system:
+            db_system.close()
+
 # ==================== HEALTH CHECK ====================
 
 @app.route('/api/health', methods=['GET'])
@@ -529,3 +634,4 @@ def health_check():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

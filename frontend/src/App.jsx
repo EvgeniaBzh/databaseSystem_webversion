@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = '';
+const API_URL = 'http://localhost:5001';
 
 function App() {
   const [databases, setDatabases] = useState([]);
@@ -277,6 +277,26 @@ function App() {
     }
   };
 
+  const handleImportDatabase = async (file) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      const response = await axios.post(`${API_URL}/api/databases/import`, data);
+      
+      loadDatabases();
+      closeModal();
+      alert(`База даних "${data.name}" успішно імпортована!\nІмпортовано таблиць: ${response.data.tables_imported}`);
+    } catch (error) {
+      console.error('Помилка:', error);
+      if (error instanceof SyntaxError) {
+        alert('Помилка: Некоректний JSON файл');
+      } else {
+        alert('Помилка імпорту: ' + (error.response?.data?.error || error.message));
+      }
+    }
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -288,7 +308,16 @@ function App() {
         <div className="panel databases-panel">
           <div className="panel-header">
             <h2>Бази даних</h2>
-            <button onClick={() => openModal('createDatabase')}>Створити БД</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => openModal('createDatabase')}>Створити БД</button>
+              <button 
+                onClick={() => openModal('importDatabase')}
+                style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #319795 100%)' }}
+                title="Імпорт бази даних з JSON"
+              >
+                📁 Імпорт
+              </button>
+            </div>
           </div>
           <div className="list">
             {databases.map((db) => (
@@ -480,6 +509,7 @@ function App() {
             else if (modalType === 'addRecord') handleAddRecord(data);
             else if (modalType === 'editRecord') handleUpdateRecord(data.index, data.record);
             else if (modalType === 'intersectTables') handleIntersectTables(data.table1, data.table2, data.saveAs);
+            else if (modalType === 'importDatabase') handleImportDatabase(data.file);
           }}
         />
       )}
@@ -490,6 +520,7 @@ function App() {
 // Модальне вікно
 function Modal({ type, data, tableDetails, tables, onClose, onSubmit }) {
   const [formData, setFormData] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (type === 'editDatabase') {
@@ -511,11 +542,22 @@ function Modal({ type, data, tableDetails, tables, onClose, onSubmit }) {
       });
     } else if (type === 'intersectTables') {
       setFormData({ table1: '', table2: '', saveAs: '' });
+    } else if (type === 'importDatabase') {
+      setSelectedFile(null);
     }
   }, [type, data]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (type === 'importDatabase') {
+      if (!selectedFile) {
+        alert('Будь ласка, оберіть файл');
+        return;
+      }
+      onSubmit({ file: selectedFile });
+      return;
+    }
     
     if (type === 'createDatabase' || type === 'createTable') {
       onSubmit({ name: formData.name });
@@ -567,6 +609,7 @@ function Modal({ type, data, tableDetails, tables, onClose, onSubmit }) {
           {type === 'addRecord' && 'Додати запис'}
           {type === 'editRecord' && 'Редагувати запис'}
           {type === 'intersectTables' && 'Перетин таблиць'}
+          {type === 'importDatabase' && 'Імпорт бази даних з JSON'}
         </h2>
         
         <form onSubmit={handleSubmit}>
@@ -657,6 +700,74 @@ function Modal({ type, data, tableDetails, tables, onClose, onSubmit }) {
                 />
               </div>
             </>
+          )}
+
+          {type === 'importDatabase' && (
+            <div className="form-group">
+              <label>Оберіть JSON файл з базою даних:</label>
+              <input
+                type="file"
+                accept=".json"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                required
+                style={{ 
+                  padding: '10px',
+                  border: '2px dashed #667eea',
+                  borderRadius: '10px',
+                  background: '#f7fafc',
+                  cursor: 'pointer'
+                }}
+              />
+              {selectedFile && (
+                <div style={{ 
+                  marginTop: '10px', 
+                  padding: '10px', 
+                  background: '#e6fffa',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#234e52'
+                }}>
+                  Обрано файл: <strong>{selectedFile.name}</strong>
+                </div>
+              )}
+              <div style={{
+                marginTop: '12px',
+                padding: '12px',
+                background: '#fff5e1',
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#744210'
+              }}>
+                <strong>Формат JSON файлу:</strong>
+                <pre style={{ 
+                  marginTop: '8px', 
+                  background: '#f7fafc',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  overflow: 'auto',
+                  fontSize: '12px'
+                }}>
+{`{
+  "name": "НазваБД",
+  "tables": [
+    {
+      "name": "НазваТаблиці",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "is_primary_key": true
+        }
+      ],
+      "records": [
+        {"id": "1"}
+      ]
+    }
+  ]
+}`}
+                </pre>
+              </div>
+            </div>
           )}
 
           {(type === 'addRecord' || type === 'editRecord') && tableDetails && (
